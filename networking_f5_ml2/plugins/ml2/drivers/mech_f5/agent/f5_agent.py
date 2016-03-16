@@ -263,9 +263,12 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
     def _unbound_ports(ports):
        unbound_ports = {}
 
-       for mac,port in ports.iteritems():
-            if "neutron_info" in port and port["connected_vlan"] != port['neutron_info']['segmentation_id']:
-                unbound_ports[mac] = port
+       for port in ports:
+            LOG.info("******** unbound")
+            LOG.info(port)
+
+            #if "neutron_info" in port and port["connected_vlan"] != port['neutron_info']['segmentation_id']:
+            #    unbound_ports[mac] = port
 
        return unbound_ports
 
