@@ -37,11 +37,11 @@ f5_opts = [
         'api_retry_count',
         default=10,
         help=_('The retry count if api call fails.')),
-    cfg.IntOpt(
+    cfg.StrOpt(
         'f5_device_type',
         default='external',
         help=_('LB Device Type')),
-    cfg.IntOpt(
+    cfg.StrOpt(
         'f5_bigip_lbaas_device_driver',
         default='f5.oslbaasv1agent.drivers.bigip.icontrol_driver.iControlDriver',
         help=_('LB driver')),
