@@ -277,7 +277,9 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         # For now just get ports assigned to this host, we will then check for the corresponding VLAN config on the device
         # May not scale but should prove concept works
 
-        ports = self.plugin_rpc.get_devices_details_list(self.context,agent_id=self.agent_id, host=self.agent_host)
+        devices = ["434b4dcc-48ab-529c-b969-03838be0fce6"]
+
+        ports = self.plugin_rpc.get_devices_details_list(self.context,agent_id=self.agent_id,devices=devices, host=self.agent_host)
 
 
         LOG.info("********")
