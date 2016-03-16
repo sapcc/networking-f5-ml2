@@ -366,7 +366,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
             port_stats = {}
             try:
 
-                segments = db.get_network_segments(self.context_with_session.session(), "938e383f-1935-4380-86c8-304c0eeb8ef5", filter_dynamic=None)
+                segments = db.get_network_segments(self.context_with_session.session, "938e383f-1935-4380-86c8-304c0eeb8ef5", filter_dynamic=None)
 
                 LOG.debug("****** test DB")
                 LOG.debug(segments)
