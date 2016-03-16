@@ -37,14 +37,14 @@ def register_options():
 def main():
     register_options()
 
-    conf = cfg.ConfigOpts()
+    #conf = cfg.ConfigOpts()
 
-    #common_config.init(sys.argv[1:])
+    common_config.init(sys.argv[1:])
 
 
     config.setup_logging()
 
-    agent = f5_agent.F5NeutronAgent(conf=conf)
+    agent = f5_agent.F5NeutronAgent()
 
     # Start everything.
     LOG.info(_LI("Agent initialized successfully, now running... "))
