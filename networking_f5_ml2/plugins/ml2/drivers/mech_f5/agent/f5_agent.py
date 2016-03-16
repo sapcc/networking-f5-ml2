@@ -38,6 +38,7 @@ from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron import context
 from neutron.i18n import _LE
+from neutron.plugins.ml2 import db
 
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import config as f5_config
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import constants as f5_constants
@@ -187,6 +188,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         self.plugin_rpc = agent_rpc.PluginApi(topics.PLUGIN)
         self.sg_plugin_rpc = sg_rpc.SecurityGroupServerRpcApi(topics.PLUGIN)
         self.state_rpc = agent_rpc.PluginReportStateAPI(topics.PLUGIN)
+
 
         # RPC network init
         self.context = context.get_admin_context_without_session()
@@ -361,7 +363,11 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
             port_stats = {}
             try:
 
+                segments = db.get_network_segments(self.context.session(), "938e383f-1935-4380-86c8-304c0eeb8ef5", filter_dynamic=None)
 
+                LOG.debug("****** test DB")
+                LOG.debug(segments)
+                
                 # Get current ports known on the VMWare intergration bridge
                 ports = self._scan_ports()
 
