@@ -38,7 +38,7 @@ from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron import context
 from neutron.i18n import _LE
-from neutron.plugins.ml2 import db
+from neutron.db import db_base_plugin as db_base
 
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import config as f5_config
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import constants as f5_constants
@@ -283,11 +283,11 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
 
 
         # For now just get ports assigned to this host, we will then check for the corresponding VLAN config on the device
-        # May not scale but should prove concept works
+        # May not scale but should prove concept works, we are also using dirct DB calls rather than RPC, I suspect this
+        # is an anti pattern and done properly we should extend the RPC API to allow us to scan the LB ports
 
-        devices = ["434b4dcc-48ab-529c-b969-03838be0fce6"]
 
-        ports = self.plugin_rpc.get_devices_details_list(self.context,agent_id=self.agent_id,devices=devices, host=self.agent_host)
+        ports = db_base.ports(self.context_with_session.session)
 
 
         LOG.info("********")
@@ -366,10 +366,6 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
             port_stats = {}
             try:
 
-                segments = db.get_network_segments(self.context_with_session.session, "938e383f-1935-4380-86c8-304c0eeb8ef5", filter_dynamic=None)
-
-                LOG.debug("****** test DB")
-                LOG.debug(segments)
 
                 # Get current ports known on the VMWare intergration bridge
                 ports = self._scan_ports()
