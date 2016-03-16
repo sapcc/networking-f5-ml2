@@ -295,7 +295,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         for port in all_ports:
             LOG.info("********")
             LOG.info(port)
-            binding_levels = db_ml2.get_binding_levels(self.context_with_session.session(),port['id'])
+            binding_levels = db_ml2.get_binding_levels(self.context_with_session.session,port['id'])
             LOG.info(binding_levels)
             # Get VLAN from iControl for port network and check its bound on this host to the correct VLAN
 
