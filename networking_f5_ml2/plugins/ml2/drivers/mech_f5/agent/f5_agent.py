@@ -282,8 +282,6 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
     def _scan_ports(self):
         start = time.clock()
 
-
-
         # For now just get ports assigned to this host, we will then check for the corresponding VLAN config on the device
         # May not scale but should prove concept works, we are also using dirct DB calls rather than RPC, I suspect this
         # is an anti pattern and done properly we should extend the RPC API to allow us to scan the LB ports
@@ -293,15 +291,19 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
 
 
         for port in all_ports:
-            LOG.info("********")
-            LOG.info(port)
+
             binding_levels = db_ml2.get_binding_levels(self.context_with_session.session,port['id'],self.agent_host)
 
             for binding_level in binding_levels:
-                segment = db_ml2.get_segment_by_id(self.context_with_session.session,binding_level.segment_id)
-                LOG.info(segment)
-                # if segment bound with ml2f5 driver and type is VLAN
-                # Get VLAN from iControl for port network and check its bound on this host to the correct VLAN
+                # if segment bound with ml2f5 driver
+                if binding_level.driver == 'f5ml2':
+                    segment = db_ml2.get_segment_by_id(self.context_with_session.session,binding_level.segment_id)
+                    if segment['network_type'] == 'vlan':
+                        LOG.info("******** The VLAN in F5 for this segment needs checking")
+                        LOG.info(segment)
+
+                    # and type is VLAN
+                    # Get VLAN from iControl for port network and check its bound on this host to the correct VLAN
 
 
 
