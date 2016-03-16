@@ -38,7 +38,7 @@ from neutron.common import rpc as n_rpc
 from neutron.common import topics
 from neutron import context
 from neutron.i18n import _LE
-from neutron.db import db_base_plugin as db_base
+from neutron.db import db_base_plugin_v2 as db_base
 
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import config as f5_config
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import constants as f5_constants
