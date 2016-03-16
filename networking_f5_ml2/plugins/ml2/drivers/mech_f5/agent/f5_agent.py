@@ -109,8 +109,8 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
 
         host = self.conf.host
 
-        self.agent_host = host + ":" + self.lbdriver.agent_id
-        self.lbdriver.agent_host = self.agent_host
+        self.agent_host = host + ":" + self.f5_driver.agent_id
+        self.f5_driver.agent_host = self.agent_host
 
         self.agent_id = 'f5-agent-%s' % host
 
