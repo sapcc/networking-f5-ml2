@@ -272,23 +272,16 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
     def _scan_ports(self):
         start = time.clock()
 
-        #TODO SCAN VLANs in F5
 
-        ports = []
 
-        LOG.info(_LI("F5 VLAN scan completed in {} seconds".format(time.clock()-start)))
+        # For now just get ports assigned to this host, we will then check for the corresponding VLAN config on the device
+        # May not scale but should prove concept works
 
-        # macs = []
-        # neutron_ports = self.plugin_rpc.get_devices_details_list(self.context, devices=macs, agent_id=self.agent_id, host=cfg.CONF.host)
+        ports = self.plugin_rpc.get_devices_details_list(self.context,agent_id=self.agent_id, host=self.agent_host)
 
-        neutron_ports=[]
 
         LOG.info("********")
-        LOG.info(neutron_ports)
-
-        for neutron_info in neutron_ports:
-            if neutron_info and "mac_address" in neutron_info and ports[neutron_info["mac_address"]] is not None:
-                ports[neutron_info["mac_address"]]["neutron_info"] = neutron_info
+        LOG.info(ports)
 
 
         LOG.info(_LI("Scan ports completed in {} seconds".format(time.clock()-start)))

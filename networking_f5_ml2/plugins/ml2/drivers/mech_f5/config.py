@@ -16,31 +16,6 @@
 from oslo_config import cfg
 
 f5_opts = [
-    # cfg.StrOpt(
-    # 'icontrol_hostname',
-    # default='localhost',
-    # help=_('The address or hostname of vcenter device.')),
-    # cfg.StrOpt(
-    #     'icontrol_username',
-    #     default='administrator',
-    #     help=_('The login username of f5 device.')),
-    # cfg.StrOpt(
-    #     'icontrol_password',
-    #     default='password',
-    #     secret=True,
-    #     help=_('The login password of f5 device.')),
-    # cfg.FloatOpt(
-    #     'task_poll_interval',
-    #     default=2,
-    #     help=_('The interval of task polling.')),
-    # cfg.IntOpt(
-    #     'api_retry_count',
-    #     default=10,
-    #     help=_('The retry count if api call fails.')),
-    # cfg.StrOpt(
-    #     'f5_device_type',
-    #     default='external',
-    #     help=_('LB Device Type')),
     cfg.StrOpt(
         'f5_bigip_lbaas_device_driver',
         default='f5.oslbaasv1agent.drivers.bigip.icontrol_driver.iControlDriver',
