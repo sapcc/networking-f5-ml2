@@ -116,6 +116,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         self.agent_id = 'f5-agent-%s' % host
 
         self.setup_rpc()
+        self.db = db_base.NeutronDbPluginV2()
 
         # Security group agent support
         if self.enable_security_groups:
@@ -287,7 +288,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         # is an anti pattern and done properly we should extend the RPC API to allow us to scan the LB ports
 
 
-        ports = db_base.get_ports(self.context_with_session.session)
+        ports = self.db.get_ports(self.context_with_session.session)
 
 
         LOG.info("********")
