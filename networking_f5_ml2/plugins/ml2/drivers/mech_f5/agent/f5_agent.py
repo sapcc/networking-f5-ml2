@@ -289,7 +289,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         # is an anti pattern and done properly we should extend the RPC API to allow us to scan the LB ports
         ports = {'bound' : [],'unbound' : []}
 
-        all_ports = self.db.get_ports(self.context_with_session)
+        all_ports = self.db.get_ports(self.context_with_session,filters={'host' : self.agent_host})
 
 
         for port in all_ports:
