@@ -49,6 +49,6 @@ f5_opts = [
 
 ]
 
-#cfg.CONF.register_opts(f5_opts)
+cfg.CONF.register_opts(f5_opts)
 CONF = cfg.CONF
 CONF()

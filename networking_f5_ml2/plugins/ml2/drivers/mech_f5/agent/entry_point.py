@@ -41,7 +41,7 @@ def main():
 
     config.setup_logging()
 
-    agent = f5_agent.F5NeutronAgent()
+    agent = f5_agent.F5NeutronAgent(conf=cfg.CONF)
 
     # Start everything.
     LOG.info(_LI("Agent initialized successfully, now running... "))
