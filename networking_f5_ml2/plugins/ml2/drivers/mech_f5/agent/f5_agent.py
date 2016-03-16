@@ -39,6 +39,7 @@ from neutron.common import topics
 from neutron import context
 from neutron.i18n import _LE
 from neutron.db import db_base_plugin_v2 as db_base
+from neutron.plugins.ml2 import db as db_ml2
 
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import config as f5_config
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import constants as f5_constants
@@ -286,14 +287,19 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         # For now just get ports assigned to this host, we will then check for the corresponding VLAN config on the device
         # May not scale but should prove concept works, we are also using dirct DB calls rather than RPC, I suspect this
         # is an anti pattern and done properly we should extend the RPC API to allow us to scan the LB ports
+        ports = {'bound' : [],'unbound' : []}
+
+        all_ports = self.db.get_ports(self.context_with_session)
 
 
-        ports = self.db.get_ports(self.context_with_session.session)
+        for port in all_ports:
+            LOG.info("********")
+            LOG.info(port)
+            binding_levels = db_ml2.get_binding_levels(self.context_with_session.session(),port['id'])
+            LOG.info(binding_levels)
+            # Get VLAN from iControl for port network and check its bound on this host to the correct VLAN
 
-
-        LOG.info("********")
-        LOG.info(ports)
-
+            ports['bound'].append(port)
 
         LOG.info(_LI("Scan ports completed in {} seconds".format(time.clock()-start)))
 
