@@ -51,7 +51,6 @@ f5_opts = [
         help=_('Global Routed Mode')),
     cfg.StrOpt(
         'environment_prefix',
-        default='uuid',
         help=_('Environment Prefix')),
 ]
 
