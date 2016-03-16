@@ -29,13 +29,15 @@ LOG = logging.getLogger(__name__)
 
 
 def register_options():
-    config.register_agent_state_opts_helper(cfg.CONF)
-    cfg.CONF.register_opts(f5_config.F5_AGENT_OPTS, "AGENT")
+    #config.register_agent_state_opts_helper(cfg.CONF)
+    #cfg.CONF.register_opts(f5_config.F5_AGENT_OPTS, "AGENT")
 
 
 def main():
-    register_options()
+    #register_options()
+
     common_config.init(sys.argv[1:])
+
     config.setup_logging()
 
     agent = f5_agent.F5NeutronAgent()
