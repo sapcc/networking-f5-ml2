@@ -49,7 +49,10 @@ f5_opts = [
         'f5_global_routed_mode',
         default=False,
         help=_('Global Routed Mode')),
-
+    cfg.StrOpt(
+        'environment_prefix',
+        default='uuid',
+        help=_('Environment Prefix')),
 ]
 
 cfg.CONF.register_opts(f5_opts)
