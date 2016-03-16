@@ -38,6 +38,8 @@ def main():
     #register_options()
 
     common_config.init(sys.argv[1:])
+    common_config.init(sys.argv[2:])
+    common_config.init(sys.argv[3:])
 
     config.setup_logging()
 
