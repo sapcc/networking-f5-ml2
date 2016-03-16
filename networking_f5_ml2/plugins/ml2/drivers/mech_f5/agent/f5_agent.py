@@ -71,10 +71,11 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         self.conf = conf or cfg.CONF
 
         LOG.debug("***** conf")
-        LOG.debug(conf)
+        conf.log_opt_values(LOG,logging.DEBUG)
 
         LOG.debug("***** cfg.conf")
-        LOG.debug(cfg.CONF)
+        cfg.CONF.log_opt_values(LOG,logging.DEBUG)
+
 
         self.f5_config = f5_config.CONF
 
