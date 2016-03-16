@@ -69,6 +69,13 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         self.f5_monitor_respawn_interval = f5_monitor_respawn_interval
 
         self.conf = conf or cfg.CONF
+
+        LOG.debug("***** conf")
+        LOG.debug(conf)
+
+        LOG.debug("***** cfg.conf")
+        LOG.debug(cfg.CONF)
+
         self.f5_config = f5_config.CONF
 
         self.agent_conf = self.conf.get('AGENT', {})
