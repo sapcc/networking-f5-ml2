@@ -296,8 +296,14 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
             LOG.info("********")
             LOG.info(port)
             binding_levels = db_ml2.get_binding_levels(self.context_with_session.session,port['id'],self.agent_host)
-            LOG.info(binding_levels)
-            # Get VLAN from iControl for port network and check its bound on this host to the correct VLAN
+
+            for binding_level in binding_levels:
+                segment = db_ml2.get_segment_by_id(self.context_with_session.session,binding_level.segment_id)
+                LOG.info(segment)
+                # if segment bound with ml2f5 driver and type is VLAN
+                # Get VLAN from iControl for port network and check its bound on this host to the correct VLAN
+
+
 
             ports['bound'].append(port)
 
