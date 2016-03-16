@@ -45,7 +45,10 @@ f5_opts = [
         'f5_bigip_lbaas_device_driver',
         default='f5.oslbaasv1agent.drivers.bigip.icontrol_driver.iControlDriver',
         help=_('LB driver')),
-
+    cfg.BoolOpt(
+        'f5_global_routed_mode',
+        default=False,
+        help=_('Global Routed Mode')),
 
 ]
 
