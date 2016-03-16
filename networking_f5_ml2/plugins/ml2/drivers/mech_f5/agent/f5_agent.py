@@ -43,6 +43,9 @@ from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import config as f5_config
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import constants as f5_constants
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5.agent import f5_firewall
 
+from oslo_utils import importutils
+import f5.oslbaasv1agent.drivers.bigip.constants as lbaasconstants
+
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
@@ -91,8 +94,14 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
 
         self.local_vlan_map = {}
 
+        self.f5_driver = importutils.import_object(self.conf.f5_bigip_lbaas_device_driver, self.conf)
+
 
         host = self.conf.host
+
+        self.agent_host = conf.host + ":" + self.lbdriver.agent_id
+        self.lbdriver.agent_host = self.agent_host
+
         self.agent_id = 'f5-agent-%s' % host
 
         self.setup_rpc()
@@ -105,7 +114,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
 
         self.agent_state = {
         'binary': 'neutron-f5-agent',
-        'host': host,
+        'host': self.agent_host,
         'topic': n_const.L2_AGENT_TOPIC,
         'configurations': {},
         'agent_type': f5_constants.F5_AGENT_TYPE,
@@ -254,6 +263,8 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         start = time.clock()
 
         #TODO SCAN VLANs in F5
+
+        ports = []
 
         LOG.info(_LI("F5 VLAN scan completed in {} seconds".format(time.clock()-start)))
 
