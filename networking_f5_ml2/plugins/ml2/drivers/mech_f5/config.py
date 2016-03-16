@@ -15,17 +15,17 @@
 
 from oslo_config import cfg
 
-vmware_opts = [
+f5_opts = [
     cfg.StrOpt(
-        'host_ip',
+        'icontrol_hostname',
         default='localhost',
         help=_('The address or hostname of vcenter device.')),
     cfg.StrOpt(
-        'host_username',
+        'icontrol_username',
         default='administrator',
         help=_('The login username of f5 device.')),
     cfg.StrOpt(
-        'host_password',
+        'icontrol_password',
         default='password',
         secret=True,
         help=_('The login password of f5 device.')),
@@ -37,9 +37,18 @@ vmware_opts = [
         'api_retry_count',
         default=10,
         help=_('The retry count if api call fails.')),
+    cfg.IntOpt(
+        'f5_device_type',
+        default='external',
+        help=_('LB Device Type')),
+    cfg.IntOpt(
+        'f5_bigip_lbaas_device_driver',
+        default='f5.oslbaasv1agent.drivers.bigip.icontrol_driver.iControlDriver',
+        help=_('LB driver')),
+
 
 ]
 
-cfg.CONF.register_opts(vmware_opts, group='ml2_f5')
+cfg.CONF.register_opts(f5_opts, group='DEFAULT')
 CONF = cfg.CONF
 CONF()
