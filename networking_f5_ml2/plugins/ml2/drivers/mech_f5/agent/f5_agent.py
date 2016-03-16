@@ -192,6 +192,9 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
 
         # RPC network init
         self.context = context.get_admin_context_without_session()
+        self.context_with_session = context.get_admin_context()
+
+
         # Define the listening consumers for the agent
         consumers = [[topics.PORT, topics.CREATE],
                      [topics.PORT, topics.UPDATE],
@@ -363,11 +366,11 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
             port_stats = {}
             try:
 
-                segments = db.get_network_segments(self.context.session(), "938e383f-1935-4380-86c8-304c0eeb8ef5", filter_dynamic=None)
+                segments = db.get_network_segments(self.context_with_session.session(), "938e383f-1935-4380-86c8-304c0eeb8ef5", filter_dynamic=None)
 
                 LOG.debug("****** test DB")
                 LOG.debug(segments)
-                
+
                 # Get current ports known on the VMWare intergration bridge
                 ports = self._scan_ports()
 
