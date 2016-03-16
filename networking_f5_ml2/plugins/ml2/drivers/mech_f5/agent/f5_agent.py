@@ -289,10 +289,16 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
 
         all_ports = self.db.get_ports(self.context_with_session,filters={'host' : self.agent_host})
 
+        for bigip in self.f5_driver.bigips:
+            vlans = bigip.vlan.get_vlans(folder='/')
+            LOG.info("******** VLANs from F5")
+            LOG.info("******** vlans")
 
         for port in all_ports:
 
             binding_levels = db_ml2.get_binding_levels(self.context_with_session.session,port['id'],self.agent_host)
+
+
 
             for binding_level in binding_levels:
                 # if segment bound with ml2f5 driver
