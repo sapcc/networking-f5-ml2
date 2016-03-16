@@ -53,6 +53,8 @@ class F5MechanismDriver(mech_agent.SimpleAgentMechanismDriverBase):
         return ([p_constants.TYPE_VLAN])
 
 
+    def get_mappings(self, agent):
+        return agent['configurations'].get('network_maps', {'default':'default'})
 
 
     def try_to_bind_segment_for_agent(self, context, segment, agent):
