@@ -16,10 +16,10 @@
 from oslo_config import cfg
 
 f5_opts = [
-    # cfg.StrOpt(
-    #     'icontrol_hostname',
-    #     default='localhost',
-    #     help=_('The address or hostname of vcenter device.')),
+     cfg.StrOpt(
+         'icontrol_hostname',
+         default='localhost',
+         help=_('The address or hostname of vcenter device.')),
     # cfg.StrOpt(
     #     'icontrol_username',
     #     default='administrator',
