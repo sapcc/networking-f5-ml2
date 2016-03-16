@@ -29,6 +29,7 @@ LOG = logging.getLogger(__name__)
 
 
 def register_options():
+    pass
     #config.register_agent_state_opts_helper(cfg.CONF)
     #cfg.CONF.register_opts(f5_config.F5_AGENT_OPTS, "AGENT")
 
