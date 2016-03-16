@@ -55,6 +55,6 @@ f5_opts = [
         help=_('Environment Prefix')),
 ]
 
-cfg.CONF.register_opts(f5_opts)
+#cfg.CONF.register_opts(f5_opts)
 CONF = cfg.CONF
 CONF()
