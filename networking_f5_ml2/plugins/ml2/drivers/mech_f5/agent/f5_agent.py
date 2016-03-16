@@ -287,7 +287,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         # is an anti pattern and done properly we should extend the RPC API to allow us to scan the LB ports
 
 
-        ports = db_base.ports(self.context_with_session.session)
+        ports = db_base.get_ports(self.context_with_session.session)
 
 
         LOG.info("********")
