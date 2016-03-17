@@ -252,32 +252,6 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
     def _handle_sighup(self, signum, frame):
         self.catch_sighup = True
 
-    @staticmethod
-    def _to_list_of_neutron_ports(ports):
-        neutron_ports = set()
-
-        for mac,port in ports.iteritems():
-            neutron_ports.add(port['neutron_info']['port_id'])
-
-        return neutron_ports
-
-    @staticmethod
-    def _to_list_of_macs(ports):
-
-        return ports.keys()
-
-    @staticmethod
-    def _unbound_ports(ports):
-       unbound_ports = {}
-
-       for port in ports:
-            LOG.info("******** unbound")
-            LOG.info(port)
-
-            #if "neutron_info" in port and port["connected_vlan"] != port['neutron_info']['segmentation_id']:
-            #    unbound_ports[mac] = port
-
-       return unbound_ports
 
     def _scan_ports(self):
         start = time.clock()
@@ -285,84 +259,39 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         # For now just get ports assigned to this host, we will then check for the corresponding VLAN config on the device
         # May not scale but should prove concept works, we are also using dirct DB calls rather than RPC, I suspect this
         # is an anti pattern and done properly we should extend the RPC API to allow us to scan the LB ports
-        ports = {'bound' : [],'unbound' : []}
+
 
         all_ports = self.db.get_ports(self.context_with_session,filters={'host' : self.agent_host})
 
 
         for port in all_ports:
             network=self.db.get_network(self.context_with_session, port['network_id'])
-            binding_levels = db_ml2.get_binding_levels(self.context_with_session.session,port['id'],self.agent_host)
+            binding_levels = db_ml2.get_binding_levels(self.context_with_session.session, port['id'], self.agent_host)
             for binding_level in binding_levels:
                 # if segment bound with ml2f5 driver
                 if binding_level.driver == 'f5ml2':
                     segment = db_ml2.get_segment_by_id(self.context_with_session.session,binding_level.segment_id)
                     if segment['network_type'] == 'vlan':
-                        LOG.info("******** The VLAN in F5 for this segment needs checking")
-                        LOG.info(segment)
                         # and type is VLAN
-                        # Get VLAN from iControl for port network and check its bound on this host to the correct VLAN
+                        # Get VLANs from iControl for port network and check they are bound to the correct VLAN
                         for bigip in self.f5_driver.get_config_bigips():
                             folder= '/uuid_'+network['tenant_id']
                             vlans = bigip.vlan.get_vlans(folder=folder)
-                            LOG.info("******** VLANs from F5")
-                            LOG.info(vlans)
-                            LOG.info(network)
                             for vlan in vlans:
-                                tag = bigip.vlan.get_id(name=vlan,folder=folder)
-                                LOG.info("******** VLAN tag ")
-                                LOG.info(vlan)
-                                LOG.info(tag)
+                                # Crude match for VLAN name for network
+                                if vlan == network['name']+"-"+network['id'][0:8]:
+                                    tag = bigip.vlan.get_id(name=vlan, folder=folder)
+                                    if tag != segment['segmentation_id']:
+                                        # Update VLAN tag in case of mismatch
+                                        LOG.info("Updating VLAN tag was %s needs to be %s", tag, segment['segmentation_id'])
+                                        bigip.vlan.set_id(name=vlan, folder=folder, vlanid=segment['segmentation_id'])
 
-                                bigip.vlan.set_id(name=vlan,folder=folder,vlanid=segment['segmentation_id'])
 
-
-            ports['bound'].append(port)
 
         LOG.info(_LI("Scan ports completed in {} seconds".format(time.clock()-start)))
 
-        return ports
 
 
-    def _bind_ports(self, added_ports):
-
-        devices_up = []
-        devices_down = []
-
-        for mac,port in added_ports.iteritems():
-            if port["connected_vlan"] != port['neutron_info']['segmentation_id']:
-
-                LOG.info("Preparing to bind port {} to VLAN {}".format(port['neutron_info']['port_id'],port['neutron_info']['segmentation_id']))
-
-                try:
-
-
-                    #TODO call to F5 to set port vlan
-
-
-                    devices_up.append(port['neutron_info']['port_id'])
-                except Exception:
-                    devices_down.append(port['neutron_info']['port_id'])
-
-        LOG.info("Updating ports up {} down {} agent {} host {}".format(devices_up,devices_down, self.agent_id,cfg.CONF.host))
-
-        result = self.plugin_rpc.update_device_list(self.context, devices_up, devices_down, self.agent_id,cfg.CONF.host)
-
-        LOG.info("Updated ports result".format(result))
-
-        # update firewall agent if we have addded or updated ports
-        if self.updated_ports or added_ports:
-            self.sg_agent.setup_port_filters(F5NeutronAgent._to_list_of_neutron_ports(added_ports), self.updated_ports)
-
-        # clear updated ports
-        self.updated_ports.clear()
-
-
-    def _unbind_ports(self, ports):
-        # Nothing really to do on the VCenter - we let the vcenter unplug - so all we need to do is
-        # trigger the firewall update and clear the deleted ports list
-        self.sg_agent.remove_devices_filter(ports)
-        self.deleted_ports.clear()
 
     def loop_count_and_wait(self, start_time, port_stats):
         # sleep till end of polling interval
@@ -391,20 +320,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
             port_stats = {}
             try:
 
-
-                # Get current ports known on the VMWare intergration bridge
-                ports = self._scan_ports()
-
-                added_ports = F5NeutronAgent._unbound_ports(ports)
-
-                port_stats = {"added":len(added_ports), "updated":len(self.updated_ports), "deleted":len(self.deleted_ports)}
-
-                self._bind_ports(added_ports)
-
-                # Remove deleted ports
-                #TODO : updated/deleted ports can be updated via the callback
-
-                self._unbind_ports(self.deleted_ports)
+                self._scan_ports()
 
             except Exception:
                 LOG.exception(_LE("Error while processing ports"))
