@@ -289,7 +289,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
 
         all_ports = self.db.get_ports(self.context_with_session,filters={'host' : self.agent_host})
 
-        for bigip in self.f5_driver.bigips:
+        for bigip in self.f5_driver.get_config_bigips():
             vlans = bigip.vlan.get_vlans(folder='/')
             LOG.info("******** VLANs from F5")
             LOG.info("******** vlans")
