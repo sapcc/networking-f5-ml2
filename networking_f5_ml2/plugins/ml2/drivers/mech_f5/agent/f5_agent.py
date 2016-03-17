@@ -289,24 +289,10 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
 
         all_ports = self.db.get_ports(self.context_with_session,filters={'host' : self.agent_host})
 
-        for bigip in self.f5_driver.get_config_bigips():
-            vlans = bigip.vlan.get_vlans(folder='/')
-            LOG.info("******** VLANs from F5")
-            LOG.info(vlans)
-            for vlan in vlans:
-                tag = bigip.vlan.get_id(name=vlan,folder='/uuid_8a1b36088acf4d58869bda2181190ec4')
-                LOG.info("******** VLAN tag ")
-                LOG.info(vlan)
-                LOG.info(tag)
-
-
 
         for port in all_ports:
-
+            network=self.db.get_network(self.context_with_session, port['network_id'])
             binding_levels = db_ml2.get_binding_levels(self.context_with_session.session,port['id'],self.agent_host)
-
-
-
             for binding_level in binding_levels:
                 # if segment bound with ml2f5 driver
                 if binding_level.driver == 'f5ml2':
@@ -314,10 +300,21 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
                     if segment['network_type'] == 'vlan':
                         LOG.info("******** The VLAN in F5 for this segment needs checking")
                         LOG.info(segment)
+                        # and type is VLAN
+                        # Get VLAN from iControl for port network and check its bound on this host to the correct VLAN
+                        for bigip in self.f5_driver.get_config_bigips():
+                            folder= '/uuid_'+network['tenant_id']
+                            vlans = bigip.vlan.get_vlans(folder=folder)
+                            LOG.info("******** VLANs from F5")
+                            LOG.info(vlans)
+                            LOG.info(network)
+                            for vlan in vlans:
+                                tag = bigip.vlan.get_id(name=vlan,folder=folder)
+                                LOG.info("******** VLAN tag ")
+                                LOG.info(vlan)
+                                LOG.info(tag)
 
-                    # and type is VLAN
-                    # Get VLAN from iControl for port network and check its bound on this host to the correct VLAN
-
+                                bigip.vlan.set_id(name=vlan,folder=folder,vlanid=segment['segmentation_id'])
 
 
             ports['bound'].append(port)
