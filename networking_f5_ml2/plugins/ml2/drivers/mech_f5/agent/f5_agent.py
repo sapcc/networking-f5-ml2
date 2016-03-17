@@ -293,6 +293,13 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
             vlans = bigip.vlan.get_vlans(folder='/')
             LOG.info("******** VLANs from F5")
             LOG.info(vlans)
+            for vlan in vlans:
+                tag = bigip.vlan.get_id(vlan,folder='/')
+                LOG.info("******** VLAN tag ")
+                LOG.info(vlan)
+                LOG.info(tag)
+
+
 
         for port in all_ports:
 
