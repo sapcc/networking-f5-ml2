@@ -32,7 +32,6 @@ from oslo_service import loopingcall
 from neutron.agent.common import polling
 from neutron.common import config
 from neutron.agent import rpc as agent_rpc
-from neutron.agent import securitygroups_rpc as sg_rpc
 from neutron.common import constants as n_const
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
@@ -43,10 +42,9 @@ from neutron.plugins.ml2 import db as db_ml2
 
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import config as f5_config
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import constants as f5_constants
-from networking_f5_ml2.plugins.ml2.drivers.mech_f5.agent import f5_firewall
 
 from oslo_utils import importutils
-import f5.oslbaasv1agent.drivers.bigip.constants as lbaasconstants
+
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -55,20 +53,14 @@ CONF = cfg.CONF
 
 
 
-class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
+class F5NeutronAgent():
 
     target = oslo_messaging.Target(version='1.4')
 
     def __init__(self,
-                 minimize_polling=False,
                  quitting_rpc_timeout=None,
-                 conf=None,
-                 f5_monitor_respawn_interval=(
-                    f5_constants.DEFAULT_F5_RESPAWN)):
+                 conf=None,):
 
-        super(F5NeutronAgent, self).__init__()
-
-        self.f5_monitor_respawn_interval = f5_monitor_respawn_interval
 
         self.conf = conf or cfg.CONF
 
@@ -84,9 +76,6 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         self.f5_config = f5_config.CONF
 
         self.agent_conf = self.conf.get('AGENT', {})
-        self.security_conf = self.conf.get('SECURITYGROUP', {})
-
-        self.minimize_polling=minimize_polling,
         self.polling_interval=10
         self.iter_num = 0
         self.run_daemon_loop = True
@@ -102,28 +91,19 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         self.network_ports = collections.defaultdict(set)
 
 
-        self.enable_security_groups = self.security_conf.get('enable_security_group', False)
-
         self.local_vlan_map = {}
 
         self.f5_driver = importutils.import_object(self.conf.f5_bigip_lbaas_device_driver, self.conf)
-
-
         host = self.conf.host
 
         self.agent_host = host + ":" + self.f5_driver.agent_id
+
         self.f5_driver.agent_host = self.agent_host
 
         self.agent_id = 'f5-agent-%s' % host
 
         self.setup_rpc()
         self.db = db_base.NeutronDbPluginV2()
-
-        # Security group agent support
-        if self.enable_security_groups:
-            self.sg_agent = sg_rpc.SecurityGroupAgentRpc(self.context,
-                    self.sg_plugin_rpc, self.local_vlan_map,
-                    defer_refresh_firewall=True)
 
         self.agent_state = {
         'binary': 'neutron-f5-agent',
@@ -144,12 +124,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
     def port_update(self, context,  **kwargs):
         port = kwargs.get('port')
         self.updated_ports.add(port['id'])
-
-        if self.enable_security_groups:
-            if 'security_groups' in port:
-                self.sg_agent.refresh_firewall()
-
-        LOG.info(_LI("Agent port_update for port %s", port['id']))
+        LOG.info(_LI("Agent port_update for port {}".format(port['id'])))
 
     def port_delete(self, context, **kwargs):
         port_id = kwargs.get('port_id')
@@ -188,7 +163,6 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         LOG.info(_LI("RPC agent_id: %s"), self.agent_id)
 
         self.plugin_rpc = agent_rpc.PluginApi(topics.PLUGIN)
-        self.sg_plugin_rpc = sg_rpc.SecurityGroupServerRpcApi(topics.PLUGIN)
         self.state_rpc = agent_rpc.PluginReportStateAPI(topics.PLUGIN)
 
 
@@ -203,8 +177,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
                      [topics.PORT, topics.DELETE],
                      [topics.NETWORK, topics.CREATE],
                      [topics.NETWORK, topics.UPDATE],
-                     [topics.NETWORK, topics.DELETE],
-                     [topics.SECURITY_GROUP, topics.UPDATE]]
+                     [topics.NETWORK, topics.DELETE]]
 
         self.connection = agent_rpc.create_consumers([self],
                                                      topics.AGENT,
@@ -265,9 +238,13 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
 
 
         for port in all_ports:
+            LOG.info(_LI("Agent port scan for port {}".format(port['id'])))
+
             network=self.db.get_network(self.context_with_session, port['network_id'])
             binding_levels = db_ml2.get_binding_levels(self.context_with_session.session, port['id'], self.agent_host)
             for binding_level in binding_levels:
+                LOG.info(_LI("Binding level {}".format(binding_level)))
+
                 # if segment bound with ml2f5 driver
                 if binding_level.driver == 'f5ml2':
                     segment = db_ml2.get_segment_by_id(self.context_with_session.session,binding_level.segment_id)
@@ -275,16 +252,18 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
                         # and type is VLAN
                         # Get VLANs from iControl for port network and check they are bound to the correct VLAN
                         for bigip in self.f5_driver.get_config_bigips():
-                            folder= '/uuid_'+network['tenant_id']
-                            vlans = bigip.vlan.get_vlans(folder=folder)
-                            for vlan in vlans:
-                                # Crude match for VLAN name for network
-                                if vlan == network['name']+"-"+network['id'][0:8]:
-                                    tag = bigip.vlan.get_id(name=vlan, folder=folder)
-                                    if tag != segment['segmentation_id']:
-                                        # Update VLAN tag in case of mismatch
-                                        LOG.info("Updating VLAN tag was %s needs to be %s", tag, segment['segmentation_id'])
-                                        bigip.vlan.set_id(name=vlan, folder=folder, vlanid=segment['segmentation_id'])
+                            folder= 'Project_'+network['tenant_id']
+                            name = 'vlan-'+network['id'][0:10]
+
+                            v = bigip.net.vlans.vlan
+                            if v.exists(name=name, partition=folder):
+                                v.load(name=name, partition=folder)
+                                tag = v.tag
+                                if tag != segment['segmentation_id']:
+                                    # Update VLAN tag in case of mismatch
+                                    LOG.info("Updating VLAN tag was %s needs to be %s", tag, segment['segmentation_id'])
+                                    v.tag = segment['segmentation_id']
+                                    v.update()
 
 
 
@@ -312,8 +291,7 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
                        'elapsed': elapsed})
         self.iter_num = self.iter_num + 1
 
-    def rpc_loop(self, polling_manager=None):
-        if not polling_manager: polling_manager = polling.get_polling_manager(minimize_polling=False)
+    def rpc_loop(self,):
 
         while self._check_and_handle_signal():
             start = time.time()
@@ -325,7 +303,6 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
             except Exception:
                 LOG.exception(_LE("Error while processing ports"))
 
-            polling_manager.polling_completed()
             self.loop_count_and_wait(start,port_stats)
 
     def daemon_loop(self):
@@ -334,8 +311,4 @@ class F5NeutronAgent(sg_rpc.SecurityGroupAgentRpcCallbackMixin):
         signal.signal(signal.SIGTERM, self._handle_sigterm)
         if hasattr(signal, 'SIGHUP'):
             signal.signal(signal.SIGHUP, self._handle_sighup)
-        with polling.get_polling_manager(
-            self.minimize_polling,
-            self.f5_monitor_respawn_interval) as pm:
-
-            self.rpc_loop(polling_manager=pm)
+        self.rpc_loop()

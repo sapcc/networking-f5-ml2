@@ -26,6 +26,7 @@ f5_opts = [
         help=_('Global Routed Mode')),
     cfg.StrOpt(
         'environment_prefix',
+        default='Project',
         help=_('Environment Prefix')),
 ]
 
