@@ -1,4 +1,4 @@
-# Copyright 2015 Cloudbase Solutions Srl
+# Copyright 2016 SAP SE
 #
 # All Rights Reserved.
 #

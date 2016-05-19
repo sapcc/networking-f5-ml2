@@ -1,4 +1,5 @@
-# Copyright 2013 Cloudbase Solutions SRL
+# Copyright 2016 SAP SE
+#
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -24,7 +25,6 @@ from neutron.i18n import _LI
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5.agent import config as f5_config
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5.agent import f5_agent
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -36,10 +36,7 @@ def register_options():
 def main():
     register_options()
 
-
-
     common_config.init(sys.argv[1:])
-
 
     config.setup_logging()
 

@@ -1,4 +1,4 @@
-# Copyright 2015 Cloudbase Solutions Srl
+# Copyright 2016 SAP SE
 #
 # All Rights Reserved.
 #
@@ -14,18 +14,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
-
 import collections
 import signal
 import time
 
 import eventlet
+
 eventlet.monkey_patch()
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from neutron.i18n import _LI,_LW
+from neutron.i18n import _LI, _LW
 import oslo_messaging
 from oslo_service import loopingcall
 
@@ -40,60 +39,48 @@ from neutron.i18n import _LE
 from neutron.db import db_base_plugin_v2 as db_base
 from neutron.plugins.ml2 import db as db_ml2
 
-from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import config as f5_config
+
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5 import constants as f5_constants
 
 from oslo_utils import importutils
 
-
 LOG = logging.getLogger(__name__)
-CONF = cfg.CONF
 
-
+cfg.CONF.import_group('ml2_f5',
+                      'networking_f5_ml2.plugins.ml2.drivers.mech_f5.config')
 
 
 
 class F5NeutronAgent():
-
     target = oslo_messaging.Target(version='1.4')
 
     def __init__(self,
                  quitting_rpc_timeout=None,
-                 conf=None,):
+                 conf=None, ):
 
+        self.conf = cfg.CONF
 
-        self.conf = conf or cfg.CONF
-
-        LOG.debug("***** conf")
-        if conf:
-            conf.log_opt_values(LOG,logging.DEBUG)
-
-        LOG.debug("***** cfg.conf")
-        if cfg.CONF:
-            cfg.CONF.log_opt_values(LOG,logging.DEBUG)
-
-
-        self.f5_config = f5_config.CONF
+        cfg.CONF.log_opt_values(LOG, logging.DEBUG)
 
         self.agent_conf = self.conf.get('AGENT', {})
-        self.polling_interval=10
+        self.polling_interval = 10
         self.iter_num = 0
         self.run_daemon_loop = True
         self.quitting_rpc_timeout = quitting_rpc_timeout
         self.catch_sigterm = False
         self.catch_sighup = False
 
-                # Stores port update notifications for processing in main rpc loop
+        # Stores port update notifications for processing in main rpc loop
         self.updated_ports = set()
         # Stores port delete notifications
         self.deleted_ports = set()
 
         self.network_ports = collections.defaultdict(set)
 
-
         self.local_vlan_map = {}
 
-        self.f5_driver = importutils.import_object(self.conf.f5_bigip_lbaas_device_driver, self.conf)
+        self.f5_driver = importutils.import_object(cfg.CONF.f5_bigip_lbaas_device_driver, cfg.CONF)
+
         host = self.conf.host
 
         self.agent_host = host + ":" + self.f5_driver.agent_id
@@ -106,35 +93,26 @@ class F5NeutronAgent():
         self.db = db_base.NeutronDbPluginV2()
 
         self.agent_state = {
-        'binary': 'neutron-f5-agent',
-        'host': self.agent_host,
-        'topic': n_const.L2_AGENT_TOPIC,
-        'configurations': {},
-        'agent_type': f5_constants.F5_AGENT_TYPE,
-        'start_flag': True}
-
-
-
+            'binary': 'neutron-f5-agent',
+            'host': self.agent_host,
+            'topic': n_const.L2_AGENT_TOPIC,
+            'configurations': {},
+            'agent_type': f5_constants.F5_AGENT_TYPE,
+            'start_flag': True}
 
         self.connection.consume_in_threads()
 
-
-
-
-    def port_update(self, context,  **kwargs):
+    def port_update(self, context, **kwargs):
         port = kwargs.get('port')
         self.updated_ports.add(port['id'])
-        LOG.info(_LI("Agent port_update for port {}".format(port['id'])))
 
     def port_delete(self, context, **kwargs):
         port_id = kwargs.get('port_id')
         self.deleted_ports.add(port_id)
         self.updated_ports.discard(port_id)
 
-        LOG.info(_LI("Agent port_delete for port {}".format(port_id)))
-
     def network_create(self, context, **kwargs):
-        LOG.info(_LI("Agent network_create"))
+        pass
 
     def network_update(self, context, **kwargs):
         network_id = kwargs['network']['id']
@@ -143,20 +121,15 @@ class F5NeutronAgent():
             # we don't want to update it anymore
             if port_id not in self.deleted_ports:
                 self.updated_ports.add(port_id)
-        LOG.debug("Agent network_update for network "
-                  "%(network_id)s, with ports: %(ports)s",
-                  {'network_id': network_id,
-                   'ports': self.network_ports[network_id]})
 
     def network_delete(self, context, **kwargs):
-        LOG.info(_LI("Agent network_delete"))
+        pass
 
     def _clean_network_ports(self, port_id):
         for port_set in self.network_ports.values():
             if port_id in port_set:
                 port_set.remove(port_id)
                 break
-
 
     def setup_rpc(self):
 
@@ -165,11 +138,9 @@ class F5NeutronAgent():
         self.plugin_rpc = agent_rpc.PluginApi(topics.PLUGIN)
         self.state_rpc = agent_rpc.PluginReportStateAPI(topics.PLUGIN)
 
-
         # RPC network init
         self.context = context.get_admin_context_without_session()
         self.context_with_session = context.get_admin_context()
-
 
         # Define the listening consumers for the agent
         consumers = [[topics.PORT, topics.CREATE],
@@ -184,23 +155,20 @@ class F5NeutronAgent():
                                                      consumers,
                                                      start_listening=False)
 
-
-        report_interval = 30 #self.conf.AGENT.report_interval
+        report_interval = 30  # self.conf.AGENT.report_interval
         heartbeat = loopingcall.FixedIntervalLoopingCall(self._report_state)
         heartbeat.start(interval=report_interval)
 
     def _report_state(self):
         LOG.info(_LI("******** Reporting state via rpc"))
-
-
         try:
             self.state_rpc.report_state(self.context,
                                         self.agent_state)
 
             self.agent_state.pop('start_flag', None)
-            LOG.info(_LI("******** Reporting state completed"))
+
         except Exception:
-            LOG.info(_LI("******** Reporting state via rpc failed "))
+
             LOG.exception(_LE("Failed reporting state!"))
 
     def _check_and_handle_signal(self):
@@ -212,7 +180,6 @@ class F5NeutronAgent():
             LOG.info(_LI("Agent caught SIGHUP, resetting."))
             self.conf.reload_config_files()
             config.setup_logging()
-            LOG.debug('Full set of CONF:')
             self.conf.log_opt_values(LOG, logging.DEBUG)
             self.catch_sighup = False
         return self.run_daemon_loop
@@ -225,35 +192,34 @@ class F5NeutronAgent():
     def _handle_sighup(self, signum, frame):
         self.catch_sighup = True
 
-
     def _scan_ports(self):
         start = time.clock()
 
-        # For now just get ports assigned to this host, we will then check for the corresponding VLAN config on the device
-        # May not scale but should prove concept works, we are also using dirct DB calls rather than RPC, I suspect this
+        # For now get all ports, we will then check for the corresponding VLAN config on the device
+        # Will not scale but should prove concept works, we are also using direct DB calls rather than RPC, I suspect this
         # is an anti pattern and done properly we should extend the RPC API to allow us to scan the LB ports
 
 
-        all_ports = self.db.get_ports(self.context_with_session,filters={'host' : self.agent_host})
-
+        all_ports = self.db.get_ports(self.context_with_session, filters={})
 
         for port in all_ports:
+            LOG.info( port)
             LOG.info(_LI("Agent port scan for port {}".format(port['id'])))
 
-            network=self.db.get_network(self.context_with_session, port['network_id'])
+            network = self.db.get_network(self.context_with_session, port['network_id'])
             binding_levels = db_ml2.get_binding_levels(self.context_with_session.session, port['id'], self.agent_host)
             for binding_level in binding_levels:
                 LOG.info(_LI("Binding level {}".format(binding_level)))
 
                 # if segment bound with ml2f5 driver
                 if binding_level.driver == 'f5ml2':
-                    segment = db_ml2.get_segment_by_id(self.context_with_session.session,binding_level.segment_id)
+                    segment = db_ml2.get_segment_by_id(self.context_with_session.session, binding_level.segment_id)
                     if segment['network_type'] == 'vlan':
                         # and type is VLAN
                         # Get VLANs from iControl for port network and check they are bound to the correct VLAN
                         for bigip in self.f5_driver.get_config_bigips():
-                            folder= 'Project_'+network['tenant_id']
-                            name = 'vlan-'+network['id'][0:10]
+                            folder = 'Project_' + network['tenant_id']
+                            name = 'vlan-' + network['id'][0:10]
 
                             v = bigip.net.vlans.vlan
                             if v.exists(name=name, partition=folder):
@@ -265,12 +231,7 @@ class F5NeutronAgent():
                                     v.tag = segment['segmentation_id']
                                     v.update()
 
-
-
-        LOG.info(_LI("Scan ports completed in {} seconds".format(time.clock()-start)))
-
-
-
+        LOG.info(_LI("Scan ports completed in {} seconds".format(time.clock() - start)))
 
     def loop_count_and_wait(self, start_time, port_stats):
         # sleep till end of polling interval
@@ -291,7 +252,7 @@ class F5NeutronAgent():
                        'elapsed': elapsed})
         self.iter_num = self.iter_num + 1
 
-    def rpc_loop(self,):
+    def rpc_loop(self, ):
 
         while self._check_and_handle_signal():
             start = time.time()
@@ -303,7 +264,7 @@ class F5NeutronAgent():
             except Exception:
                 LOG.exception(_LE("Error while processing ports"))
 
-            self.loop_count_and_wait(start,port_stats)
+            self.loop_count_and_wait(start, port_stats)
 
     def daemon_loop(self):
         # Start everything.
