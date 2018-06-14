@@ -19,9 +19,9 @@ import sys
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from neutron.agent.common import config
+from neutron.conf.agent import common as config
 from neutron.common import config as common_config
-from neutron.i18n import _LI
+from networking_f5_ml2._i18n import _LI
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5.agent import config as f5_config
 from networking_f5_ml2.plugins.ml2.drivers.mech_f5.agent import f5_agent
 

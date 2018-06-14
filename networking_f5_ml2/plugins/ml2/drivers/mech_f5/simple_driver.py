@@ -12,10 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron.plugins.ml2 import driver_api as api
-from neutron.extensions import portbindings
-from neutron.i18n import _LI
-from neutron.plugins.common import constants as p_constants
+from neutron_lib.plugins.ml2 import api
+from neutron_lib.api.definitions import portbindings
+from neutron_lib import constants as p_constants
+from networking_f5_ml2._i18n import _LI
 
 from oslo_config import cfg
 from oslo_log import log

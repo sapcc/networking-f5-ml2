@@ -24,18 +24,15 @@ eventlet.monkey_patch()
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from neutron.i18n import _LI, _LW
+from networking_f5_ml2._i18n import _LI, _LE
 import oslo_messaging
 from oslo_service import loopingcall
 
-from neutron.agent.common import polling
 from neutron.common import config
 from neutron.agent import rpc as agent_rpc
-from neutron.common import constants as n_const
-from neutron.common import rpc as n_rpc
+from neutron_lib import constants as n_const
 from neutron.common import topics
-from neutron import context
-from neutron.i18n import _LE
+from neutron_lib import context
 from neutron.db import db_base_plugin_v2 as db_base
 from neutron.plugins.ml2 import db as db_ml2
 
